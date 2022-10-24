@@ -1,17 +1,33 @@
 import { expect } from "chai";
 import hre from "hardhat";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+
+// Testing tips
+// https://hardhat.org/tutorial/testing-contracts
 
 describe("Blog", async () => {
 	async function deployBlog() {
 		const Blog = await hre.ethers.getContractFactory("Blog");
+		const [owner, addr1, addr2] = await hre.ethers.getSigners();
+
 		const blog = await Blog.deploy("Blogger");
 		await blog.deployed();
 
-		return blog;
+		return {
+			blog,
+			owner,
+			addr1,
+			addr2,
+		};
 	}
 
+	it("Should set right owner", async () => {
+		const { owner, blog } = await loadFixture(deployBlog);
+		expect(await blog.owner()).to.equal(owner.address);
+	});
+
 	it("Should create post", async () => {
-		const blog = await deployBlog();
+		const { owner, blog } = await loadFixture(deployBlog);
 		await blog.createPost("My first post", "Hello world!");
 		const posts = await blog.fetchPosts();
 
@@ -19,9 +35,7 @@ describe("Blog", async () => {
 	});
 
 	it("Should create post, based on author", async () => {
-		const [owner, addr1] = await hre.ethers.getSigners();
-
-		const blog = await deployBlog();
+		const { owner, addr1, blog } = await loadFixture(deployBlog);
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 		const ownerPosts = await blog.connect(owner).fetchPostsByAuthor();
@@ -33,8 +47,7 @@ describe("Blog", async () => {
 	});
 
 	it("Should publish post", async () => {
-		const [owner] = await hre.ethers.getSigners();
-		const blog = await deployBlog();
+		const { blog, owner } = await loadFixture(deployBlog);
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 
@@ -50,8 +63,7 @@ describe("Blog", async () => {
 	});
 
 	it("Should update post", async () => {
-		const [owner] = await hre.ethers.getSigners();
-		const blog = await deployBlog();
+		const { blog, owner } = await loadFixture(deployBlog);
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 
@@ -68,8 +80,7 @@ describe("Blog", async () => {
 	});
 
 	it("Should support multiple authors", async () => {
-		const [owner, addr1, addr2] = await hre.ethers.getSigners();
-		const blog = await deployBlog();
+		const { blog, owner, addr1, addr2 } = await loadFixture(deployBlog);
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 		await blog.connect(owner).createPost("My second post", "Hello Lisbon!");
@@ -98,8 +109,7 @@ describe("Blog", async () => {
 	});
 
 	it("Should not update post, due to different author", async () => {
-		const [owner, addr1] = await hre.ethers.getSigners();
-		const blog = await deployBlog();
+		const { blog, owner, addr1 } = await loadFixture(deployBlog);
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 
