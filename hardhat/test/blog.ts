@@ -2,11 +2,16 @@ import { expect } from "chai";
 import hre from "hardhat";
 
 describe("Blog", async () => {
-	it("Should create post", async () => {
+	async function deployBlog() {
 		const Blog = await hre.ethers.getContractFactory("Blog");
 		const blog = await Blog.deploy("Blogger");
 		await blog.deployed();
 
+		return blog;
+	}
+
+	it("Should create post", async () => {
+		const blog = await deployBlog();
 		await blog.createPost("My first post", "Hello world!");
 		const posts = await blog.fetchPosts();
 
@@ -16,9 +21,7 @@ describe("Blog", async () => {
 	it("Should create post, based on author", async () => {
 		const [owner, addr1] = await hre.ethers.getSigners();
 
-		const Blog = await hre.ethers.getContractFactory("Blog");
-		const blog = await Blog.deploy("Blogger");
-		await blog.deployed();
+		const blog = await deployBlog();
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 		const ownerPosts = await blog.connect(owner).fetchPostsByAuthor();
@@ -31,9 +34,7 @@ describe("Blog", async () => {
 
 	it("Should publish post", async () => {
 		const [owner] = await hre.ethers.getSigners();
-		const Blog = await hre.ethers.getContractFactory("Blog");
-		const blog = await Blog.deploy("Blogger");
-		await blog.deployed();
+		const blog = await deployBlog();
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 
@@ -50,9 +51,7 @@ describe("Blog", async () => {
 
 	it("Should update post", async () => {
 		const [owner] = await hre.ethers.getSigners();
-		const Blog = await hre.ethers.getContractFactory("Blog");
-		const blog = await Blog.deploy("Blogger");
-		await blog.deployed();
+		const blog = await deployBlog();
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 
@@ -70,9 +69,7 @@ describe("Blog", async () => {
 
 	it("Should support multiple authors", async () => {
 		const [owner, addr1, addr2] = await hre.ethers.getSigners();
-		const Blog = await hre.ethers.getContractFactory("Blog");
-		const blog = await Blog.deploy("Blogger");
-		await blog.deployed();
+		const blog = await deployBlog();
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 		await blog.connect(owner).createPost("My second post", "Hello Lisbon!");
@@ -102,9 +99,7 @@ describe("Blog", async () => {
 
 	it("Should not update post, due to different author", async () => {
 		const [owner, addr1] = await hre.ethers.getSigners();
-		const Blog = await hre.ethers.getContractFactory("Blog");
-		const blog = await Blog.deploy("Blogger");
-		await blog.deployed();
+		const blog = await deployBlog();
 
 		await blog.connect(owner).createPost("My first post", "Hello world!");
 
