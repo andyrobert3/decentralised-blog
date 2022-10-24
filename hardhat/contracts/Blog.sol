@@ -31,7 +31,10 @@ contract Blog is Ownable {
 
     modifier onlyAuthor(uint256 postId) {
         Post storage post = idToPost[postId];
-        require(msg.sender == post.author, "Not post author");
+        require(
+            msg.sender == post.author,
+            "Current caller is not the post's author"
+        );
         _;
     }
 

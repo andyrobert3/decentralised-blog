@@ -100,5 +100,21 @@ describe("Blog", async () => {
 		expect(addr2Posts[0].author).to.equal(addr2.address);
 	});
 
-	it("Should not update post, due to different author", async () => {});
+	it("Should not update post, due to different author", async () => {
+		const [owner, addr1] = await hre.ethers.getSigners();
+		const Blog = await hre.ethers.getContractFactory("Blog");
+		const blog = await Blog.deploy("Blogger");
+		await blog.deployed();
+
+		await blog.connect(owner).createPost("My first post", "Hello world!");
+
+		const recentPost = await blog.fetchPost("Hello world!");
+		expect(recentPost.title).to.equal("My first post");
+
+		await expect(
+			blog
+				.connect(addr1)
+				.updatePost(recentPost.id, "My first post updated", "Goodbye world!")
+		).to.be.revertedWith("Current caller is not the post's author");
+	});
 });
