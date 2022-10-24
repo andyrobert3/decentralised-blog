@@ -74,25 +74,41 @@ contract Blog is Ownable {
         return ipfsHashToPost[hash];
     }
 
+    function fetchPostById(uint256 postId) public view returns (Post memory) {
+        return idToPost[postId];
+    }
+
     function fetchPostsByAuthor() public view returns (Post[] memory) {
         uint256 numPosts = _postIds.current();
         uint256 numPostsByAuthor = 0;
 
         // Calculate "numPostsByAuthor" since memory array is static in length
         for (uint256 id = 1; id <= numPosts; id++) {
-            Post memory post = idToPost[id];
+            Post storage post = idToPost[id];
             if (post.author == msg.sender) {
                 numPostsByAuthor++;
             }
         }
 
+        // Store the "postId" that is created by the "author"
+        uint256[] memory postIdsForAuthor = new uint256[](numPostsByAuthor);
+        uint256 authorPostIdCount = 0;
+
+        for (uint256 id = 1; id <= numPosts; id++) {
+            Post storage post = idToPost[id];
+
+            if (post.author == msg.sender) {
+                postIdsForAuthor[authorPostIdCount] = id;
+                authorPostIdCount++;
+            }
+        }
+
+        // Store the "posts" created by the author
         Post[] memory postsByAuthor = new Post[](numPostsByAuthor);
         // Create the "fetchPostsByAuthor"
-        for (uint256 id = 1; id <= numPostsByAuthor; id++) {
-            Post memory post = idToPost[id];
-            if (post.author == msg.sender) {
-                postsByAuthor[id - 1] = post;
-            }
+        for (uint256 i = 0; i < numPostsByAuthor; i++) {
+            uint256 postId = postIdsForAuthor[i];
+            postsByAuthor[i] = idToPost[postId];
         }
 
         return postsByAuthor;
@@ -122,7 +138,10 @@ contract Blog is Ownable {
         require(post.id > 0, "Post not found");
 
         post.publishedAt = block.timestamp;
+        post.published = true;
+
         idToPost[postId] = post;
+        ipfsHashToPost[post.content] = post;
 
         emit PostPublished(postId, post.author, post.title, post.content);
     }
@@ -133,11 +152,15 @@ contract Blog is Ownable {
         string memory ipfsHash
     ) public onlyAuthor(postId) {
         Post storage post = idToPost[postId];
+        string memory previousPostContent = post.content;
 
         require(post.id > 0, "Post not found");
 
         post.title = title;
         post.content = ipfsHash;
+
+        // Remove previous reference to Post's "content"
+        delete ipfsHashToPost[previousPostContent];
 
         idToPost[postId] = post;
         ipfsHashToPost[ipfsHash] = post;
